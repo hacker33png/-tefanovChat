@@ -97,6 +97,29 @@
             okno.scrollTop = okno.scrollHeight;
             prveNacitanie = false;
         });
-    </script>
+    </script> 
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/-tefanovChat/firebase-messaging-sw.js')
+    .then((registration) => {
+      console.log('Service Worker zaregistrovaný s rozsahom:', registration.scope);
+    })
+    .catch((err) => {
+      console.log('Registrácia Service Workera zlyhala:', err);
+    });
+}
+function poziadatOPovolenie() {
+  Notification.requestPermission().then((permission) => {
+    if (permission === 'granted') {
+      console.log('Povolenie udelené!');
+      // Tu neskôr pridáme získanie FCM tokenu
+    } else {
+      console.log('Povolenie zamietnuté.');
+    }
+  });
+}
+
+// Spustiť pri načítaní alebo po kliknutí na nejaké tlačidlo
+poziadatOPovolenie();
+
 </body>
 </html>

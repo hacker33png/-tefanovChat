@@ -5,31 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Štefanov Messenger 🟢</title>
     <style>
-        :root { --primary: #0084ff; --bg-chat: #f0f2f5; --my-msg: #0084ff; --other-msg: #ffffff; --text-gray: #65676b; }
+        :root { --primary: #0084ff; --bg-chat: #f0f2f5; --my-msg: #0084ff; --other-msg: #ffffff; }
         body { font-family: -apple-system, sans-serif; margin: 0; background-color: var(--bg-chat); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .hlavicka { background: linear-gradient(90deg, #0084ff, #00c6ff); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
-        .admin-btns { display: flex; justify-content: center; gap: 10px; padding: 5px; background: #f0f2f5; border-bottom: 1px solid #ddd; }
-        .btn-small { background: #e4e6eb; border: none; padding: 5px 10px; border-radius: 5px; font-size: 0.7em; cursor: pointer; color: #4b4f56; font-weight: bold; }
-        #online-lista { background: white; padding: 10px; font-size: 0.85em; border-bottom: 1px solid #ddd; text-align: center; }
+        .hlavicka { background: linear-gradient(90deg, #0084ff, #00c6ff); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .admin-btns { display: flex; justify-content: center; gap: 10px; padding: 5px; background: #f0f2f5; }
+        .btn-small { background: #e4e6eb; border: none; padding: 5px 10px; border-radius: 5px; font-size: 0.7em; cursor: pointer; font-weight: bold; }
         #chat-okno { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background-color: #e5ddd5; }
-        .sprava { max-width: 75%; padding: 10px 14px; border-radius: 20px; font-size: 0.95em; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .sprava { max-width: 75%; padding: 10px 14px; border-radius: 20px; font-size: 0.95em; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; }
         .odoslana { background-color: var(--my-msg); align-self: flex-end; color: white; border-bottom-right-radius: 4px; }
         .prijata { background-color: var(--other-msg); align-self: flex-start; color: black; border-bottom-left-radius: 4px; }
-        .chat-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
+        .chat-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; cursor: pointer; }
         .pisanielista { background-color: white; padding: 12px; display: flex; gap: 10px; align-items: center; border-top: 1px solid #ddd; }
         input[type="text"] { flex: 1; padding: 12px 18px; border-radius: 25px; border: 1px solid #ccd0d5; outline: none; }
         .btn-icon { background: none; border: none; font-size: 1.5em; cursor: pointer; }
-        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center; font-weight: bold; }
+        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center; font-weight: bold; color: #0084ff; }
     </style>
 </head>
 <body>
     <div id="loading-overlay">Posielam obrázok... ⏳</div>
     <div class="hlavicka"><h1>Štefanov Messenger 🔔</h1></div>
     <div class="admin-btns">
-        <button class="btn-small" onclick="vymazatMena()">🧹 Vyčistiť mená</button>
         <button class="btn-small" onclick="vymazatVsetko()">🗑️ Vymazať históriu</button>
     </div>
-    <div id="online-lista">Online: <span id="zoznam-mien" style="color:#31a24c">pripájanie...</span></div>
     <div id="chat-okno"></div>
     <div class="pisanielista">
         <input type="file" id="foto-vstup" accept="image/*" style="display: none;" onchange="nahratFoto(this)">
@@ -40,7 +37,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, getDocs, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
@@ -56,7 +53,6 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
         const spravyRef = collection(db, "spravy");
-        const onlineRef = collection(db, "online_uzivatelia");
 
         let menoUzivatela = prompt("Zadaj meno:") || "Hosť";
 
@@ -69,7 +65,9 @@
                 await uploadBytes(storageRef, subor);
                 const url = await getDownloadURL(storageRef);
                 await addDoc(spravyRef, { image: url, cas: Date.now(), autor: menoUzivatela });
-            } catch (e) { alert("Chyba! Skontroluj Blaze plan a Storage Rules."); }
+            } catch (e) { 
+                alert("Chyba! Musíš v konzole aktivovať Blaze plan."); 
+            }
             document.getElementById('loading-overlay').style.display = 'none';
         };
 
@@ -93,15 +91,8 @@
             });
             okno.scrollTop = okno.scrollHeight;
         });
-        
-        setInterval(() => setDoc(doc(db, "online_uzivatelia", menoUzivatela), { meno: menoUzivatela, cas: Date.now() }), 30000);
-        onSnapshot(onlineRef, (snapshot) => {
-            let mena = [];
-            snapshot.forEach(d => { if(Date.now() - d.data().cas < 120000) mena.push(d.data().meno); else deleteDoc(doc(db, "online_uzivatelia", d.id)); });
-            document.getElementById('zoznam-mien').innerText = mena.join(", ");
-        });
-        window.vymazatMena = async () => { (await getDocs(onlineRef)).forEach(d => deleteDoc(doc(db, "online_uzivatelia", d.id))); };
-        window.vymazatVsetko = async () => { (await getDocs(spravyRef)).forEach(d => deleteDoc(doc(db, "spravy", d.id))); };
+
+        window.vymazatVsetko = async () => { if(confirm("Zmazať históriu?")) { (await getDocs(spravyRef)).forEach(d => deleteDoc(doc(db, "spravy", d.id))); } };
     </script>
 </body>
 </html>

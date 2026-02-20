@@ -1,0 +1,28 @@
+import firebase_admin
+from firebase_admin import credentials, messaging
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+# 1. Tu načítame tvoj kľúč zo súboru, ktorý si stiahneš z Firebase (Service Account)
+cred = credentials.Certificate("cesta/k/tvojmu/json-klucu.json")
+firebase_admin.initialize_app(cred)
+
+@app.route('/')
+def index():
+    return "Štefanov Chat beží!"
+
+# 2. Funkcia na odoslanie notifikácie
+def poslat_notifikaciu(token, titulok, text):
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=titulok,
+            body=text,
+        ),
+        token=token,
+    )
+    response = messaging.send(message)
+    print('Správa úspešne odoslaná:', response)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

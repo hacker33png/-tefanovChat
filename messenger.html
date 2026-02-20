@@ -162,6 +162,52 @@ poziadatOPovolenie();
     });
   });
 </script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAdhUJoq7szgFbp8WN5bTKx3Ib6OR8Oh5o",
+    authDomain: "stefanov-chat.firebaseapp.com",
+    projectId: "stefanov-chat",
+    storageBucket: "stefanov-chat.firebasestorage.app",
+    messagingSenderId: "915409159507",
+    appId: "1:915409159507:web:6150b7b7b91e665d68cda6",
+    measurementId: "G-X85J08SH6N"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+
+  async function requestPermission() {
+    console.log('Žiadam o povolenie...');
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      try {
+        const token = await getToken(messaging, { 
+          // Tvoj VAPID kľúč z obrázka č. 7
+          vapidKey: 'BCy_i9AqhWKotoD5YUzkYWLEo-Std0VmwirSELJjuhdCM7CjVpsfv2tTkdm8vB9SBNU1zwsp-XSsC9Q0SQ1kYY' 
+        });
+        if (token) {
+          console.log('Token získaný:', token);
+          // Tu ho neskôr pošleme na tvoj Flask server
+        }
+      } catch (err) {
+        console.log('Chyba pri získavaní tokenu:', err);
+      }
+    }
+  }
+
+  requestPermission();
+
+  onMessage(messaging, (payload) => {
+    console.log('Správa prišla (v popredí):', payload);
+    new Notification(payload.notification.title, {
+      body: payload.notification.body,
+      icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968771.png'
+    });
+  });
+</script>
 
 </body>import { getMessaging, getToken } from "firebase/messaging";
 import { getFirestore, doc, setDoc } from "firebase/firestore";

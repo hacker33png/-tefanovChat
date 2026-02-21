@@ -1,175 +1,43 @@
-<!DOCTYPE html>
-<html lang="sk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Štefanov Messenger 🟢</title>
-    <style>
-        :root { 
-            --primary: #0084ff; --bg-chat: #f0f2f5; --msg-me: #0084ff; --msg-other: #ffffff; 
-            --txt-me: white; --txt-other: black; --header: linear-gradient(90deg, #0084ff, #00c6ff);
-        }
-        /* Tmavý režim */
-        body.dark-mode { 
-            --bg-chat: #18191a; --msg-other: #3a3b3c; --txt-other: #e4e6eb; 
-            --header: #242526;
-        }
-
-        body { font-family: -apple-system, sans-serif; margin: 0; background-color: var(--bg-chat); display: flex; flex-direction: column; height: 100vh; transition: 0.3s; }
-        .hlavicka { background: var(--header); color: white; padding: 10px; text-align: center; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        
-        #chat-okno { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; background-image: url('https://www.transparenttextures.com/patterns/cubes.png'); }
-        
-        .sprava-container { display: flex; flex-direction: column; max-width: 75%; margin-bottom: 8px; }
-        .odoslana-cont { align-self: flex-end; }
-        .prijata-cont { align-self: flex-start; }
-
-        .autor-meno { font-size: 0.7em; margin-bottom: 2px; color: #65676b; margin-left: 10px; }
-        .dark-mode .autor-meno { color: #b0b3b8; }
-
-        .sprava { padding: 10px 14px; border-radius: 18px; font-size: 0.95em; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; }
-        .odoslana { background-color: var(--msg-me); color: var(--txt-me); border-bottom-right-radius: 4px; }
-        .prijata { background-color: var(--msg-other); color: var(--txt-other); border-bottom-left-radius: 4px; }
-        
-        .cas { font-size: 0.65em; margin-top: 3px; opacity: 0.7; align-self: flex-end; }
-        
-        .emoji-lista { display: flex; gap: 8px; padding: 5px 10px; background: white; border-top: 1px solid #ddd; overflow-x: auto; }
-        .dark-mode .emoji-lista { background: #242526; border-color: #3e4042; }
-        .emoji-btn { font-size: 1.2em; cursor: pointer; border: none; background: none; }
-
-        .pisanielista { background-color: white; padding: 10px; display: flex; gap: 10px; align-items: center; border-top: 1px solid #ddd; }
-        .dark-mode .pisanielista { background-color: #242526; border-color: #3e4042; }
-        
-        input[type="text"] { flex: 1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccd0d5; outline: none; }
-        .dark-mode input { background: #3a3b3c; border: none; color: white; }
-        
-        .btn-round { background: var(--primary); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="hlavicka">
-        <button class="btn-round" style="background:none; font-size:1.2em" onclick="toggleDarkMode()">🌙</button>
-        <h2 style="margin:0; font-size:1.1em;">Štefanov Chat</h2>
-        <button class="btn-round" style="background:rgba(255,255,255,0.2)" onclick="vymazatVsetko()">🗑️</button>
-    </div>
-    
-    <div id="chat-okno"></div>
-
-    <div class="emoji-lista">
-        <button class="emoji-btn" onclick="pridajEmoji('😂')">😂</button>
-        <button class="emoji-btn" onclick="pridajEmoji('👍')">👍</button>
-        <button class="emoji-btn" onclick="pridajEmoji('❤️')">❤️</button>
-        <button class="emoji-btn" onclick="pridajEmoji('🔥')">🔥</button>
-        <button class="emoji-btn" onclick="pridajEmoji('😊')">😊</button>
-        <button class="emoji-btn" onclick="pridajEmoji('👋')">👋</button>
-    </div>
-
-    <div class="pisanielista">
-        <button class="btn-round" style="background:none; color:black; font-size:1.3em;" onclick="alert('Najprv aktivuj Blaze plan pre fotky!')">📷</button>
-        <input type="text" id="vstup" placeholder="Napíš správu...">
-        <button onclick="poslatSpravu()" class="btn-round">➔</button>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAdhUJoq7szgFbp8WN5bTKx3Ib6OR8Oh5o",
-            authDomain: "stefanov-chat.firebaseapp.com",
-            projectId: "stefanov-chat",
-            storageBucket: "stefanov-chat.firebasestorage.app",
-            messagingSenderId: "915409159507",
-            appId: "1:915409159507:web:d4fade5388b7822968cda6"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const spravyRef = collection(db, "spravy");
-
-        let menoUzivatela = prompt("Tvoje meno:") || "Štefan";
-
-        window.toggleDarkMode = () => document.body.classList.toggle('dark-mode');
-        window.pridajEmoji = (e) => document.getElementById('vstup').value += e;
-
-        window.poslatSpravu = async function() {
-            const v = document.getElementById('vstup');
-            if (v.value.trim() !== "") {
-                await addDoc(spravyRef, { text: v.value, cas: Date.now(), autor: menoUzivatela });
-                v.value = "";
-            }
-        };
-
-        onSnapshot(query(spravyRef, orderBy("cas", "asc")), (snapshot) => {
-            const okno = document.getElementById('chat-okno');
-            okno.innerHTML = "";
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const casText = new Date(data.cas).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const isMe = data.autor === menoUzivatela;
-                
-                const divCont = document.createElement('div');
-                divCont.className = `sprava-container ${isMe ? 'odoslana-cont' : 'prijata-cont'}`;
-                
-                divCont.innerHTML = `
-                    <span class="autor-meno">${data.autor}</span>
-                    <div class="sprava ${isMe ? 'odoslana' : 'prijata'}">
-                        ${data.text}
-                    </div>
-                    <span class="cas">${casText}</span>
-                `;
-                okno.appendChild(divCont);
-            });
-            okno.scrollTop = okno.scrollHeight;
-        });
-
-        window.vymazatVsetko = async () => { if(confirm("Vymazať celý chat?")) { (await getDocs(spravyRef)).forEach(d => deleteDoc(doc(db, "spravy", d.id))); } };
-    </script><script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
 
 <script>
-  // Tvoja overená konfigurácia pre "Messenger web"
   const firebaseConfig = {
-    apiKey: "AIzaSyAdhUjoq7szgFbp8WN5bTKx3...", // Doplň svoje celé API Key
+    apiKey: "AIzaSyAdhUJoq7szgFbp8WN5bTKx3Ib6OR8Oh5o",
     authDomain: "stefanov-chat.firebaseapp.com",
     projectId: "stefanov-chat",
     storageBucket: "stefanov-chat.firebasestorage.app",
     messagingSenderId: "915409159507",
-    appId: "1:915409159507:web:6150b7b7b91e665d68cda6"
+    appId: "1:915409159507:web:d4fade5388b7822968cda6"
   };
 
-  // Inicializácia
   firebase.initializeApp(firebaseConfig);
   const messaging = firebase.messaging();
 
-  // 1. Registrácia tvojho Service Workera
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/firebase-messaging-sw.js')
       .then((reg) => {
-        console.log('Service Worker zaregistrovaný pre Stefanov Messenger!', reg.scope);
+        console.log('Service Worker zaregistrovaný!', reg.scope);
       })
-      .catch((err) => console.log('Chyba registrácie SW:', err));
+      .catch((err) => console.log('Chyba SW:', err));
   }
 
-  // 2. Funkcia na vyžiadanie povolenia (zobrazí vyskakovacie okno)
   async function aktivujUpozornenia() {
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         console.log('Povolenie udelené.');
-        
-        // Získanie tokenu (Tu budeš potrebovať ten VAPID kľúč neskôr)
-        // const token = await messaging.getToken({ vapidKey: 'TU_BUDE_KLUC' });
-        // if (token) console.log('Token:', token);
+
+        const token = await messaging.getToken({
+          vapidKey: "TU_BUDE_TVOJ_VAPID_KEY"
+        });
+
+        console.log("Tvoj token:", token);
       }
     } catch (error) {
       console.error('Chyba pri povolení:', error);
     }
   }
 
-  // Spustiť pri načítaní
   aktivujUpozornenia();
 </script>
-
-</body>
-</html>
